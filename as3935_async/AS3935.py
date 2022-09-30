@@ -25,7 +25,7 @@ INT_L = 0b1000
 
 
 class AS3935:
-    def __init__(self, irq, bus=1, address=0x03):
+    def __init__(self, irq, pi, bus=1, address=0x03):
         """
         Configure the main parameters of AS3935.
 
@@ -36,12 +36,14 @@ class AS3935:
         self.address = address
         self.bus = bus
         self.irq = irq
-        self.pi = asyncpio.pi()
-        if self.sl.s is None:
+        self.pi = pi
+        if self.pi.sl.s is None:
             # Maybe there is a better test to check for active connection?
             raise ValueError("The pi value should contain an already connected pi")
-        self.i2c_device = await self.pi.i2c_open(bus, address)
+        self.i2c_device = None
 
+    async def open():
+        self.i2c_device = self.pi.i2c_open(self.bus, self.address)
     # ------ CROSS FUNCTIONS ------ #
 
     async def read_byte(self, address):
@@ -147,7 +149,7 @@ class AS3935:
         if not 0 <= value <= 0b1111:
             raise ValueError("Value should be from 0b0010 to 0b1111")
         original_byte = await self.read_byte(0x01)
-        await self.write_byte(0x01, original_byte & 0x11110000) | value)
+        await self.write_byte(0x01, (original_byte & 0x11110000) | value)
 
     # ------------- 8.8- NOISE FLOOR GENERATOR ------------ #
 
@@ -327,7 +329,7 @@ class AS3935:
             bin_min = 0b00110000
         else:
             raise ValueError("Allowed values for min_strikes: 1, 5, 9, 16.")
-        await self.write(0x02, (self.read_byte(0x02) & 0b11001111) | bin_min)
+        await self.write_byte(0x02, (self.read_byte(0x02) & 0b11001111) | bin_min)
 
     async def clear_lightning_stats(self):
         """
@@ -516,3 +518,10 @@ class AS3935:
         enable_trco_task = asyncio.create_task(self.set_display_trco(True))
         asyncio.wait({listen_task, calibrate_task, enable_trco_task})
         await self.set_display_trco(False)
+
+async def create_as3935(irq, bus=1, address=0x03):
+    pi = asyncpio.pi()
+    await pi.connect()
+    device = AS3935(irq, pi,  bus=1, address=0x03)
+    device.open()
+    return device

@@ -19,7 +19,7 @@ setup(
   download_url='https://github.com/mjkl-gh/as3935_async/archive/v0.0.1-alpha.tar.gz',
   keywords = ['python', 'raspberry', 'gpio', 'lightning', 'sensor'],
   install_requires=[
-          'asyncpio @ git+https://github.com/spthm/asyncpio@master',
+          'asyncpio @ git+https://github.com/mjkl-gh/asyncpio@master',
       ],
   classifiers=[
     'Development Status :: 3 - Alpha',
